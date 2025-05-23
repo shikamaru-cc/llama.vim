@@ -313,6 +313,7 @@ endfunction
 " picks a queued chunk, sends it for processing and adds it to s:ring_chunks
 " called every g:llama_config.ring_update_ms
 function! s:ring_update()
+    echo 'ring update'
     call timer_start(g:llama_config.ring_update_ms, {-> s:ring_update()})
 
     " update only if in normal mode or if the cursor hasn't moved for a while
@@ -514,6 +515,9 @@ function! llama#fim(pos_x, pos_y, is_auto, prev, use_cache) abort
     let l:suffix = l:ctx_local['suffix']
     let l:indent = l:ctx_local['indent']
 
+    "<|fim_prefix|>#include <stdio.h>\n\nint main<|fim_suffix|>}\n<|fim_middle|>
+    let l:prompt = '<|fim_prefix|>' . l:prefix . '<|fim_suffix|>' . l:suffix . '<|fim_middle|>' . l:middle
+
     if a:is_auto && len(l:ctx_local['line_cur_suffix']) > g:llama_config.max_line_suffix
         return
     endif
@@ -581,34 +585,40 @@ function! llama#fim(pos_x, pos_y, is_auto, prev, use_cache) abort
             \ })
     endfor
 
+    " let l:request = json_encode({
+    "     \ 'input_prefix':     l:prefix,
+    "     \ 'input_suffix':     l:suffix,
+    "     \ 'input_extra':      l:extra_ctx,
+    "     \ 'prompt':           l:middle,
+    "     \ 'n_predict':        g:llama_config.n_predict,
+    "     \ 'stop':             g:llama_config.stop_strings,
+    "     \ 'n_indent':         l:indent,
+    "     \ 'top_k':            40,
+    "     \ 'top_p':            0.90,
+    "     \ 'stream':           v:false,
+    "     \ 'samplers':         ["top_k", "top_p", "infill"],
+    "     \ 'cache_prompt':     v:true,
+    "     \ 't_max_prompt_ms':  g:llama_config.t_max_prompt_ms,
+    "     \ 't_max_predict_ms': l:t_max_predict_ms,
+    "     \ 'response_fields':  [
+    "     \                       "content",
+    "     \                       "timings/prompt_n",
+    "     \                       "timings/prompt_ms",
+    "     \                       "timings/prompt_per_token_ms",
+    "     \                       "timings/prompt_per_second",
+    "     \                       "timings/predicted_n",
+    "     \                       "timings/predicted_ms",
+    "     \                       "timings/predicted_per_token_ms",
+    "     \                       "timings/predicted_per_second",
+    "     \                       "truncated",
+    "     \                       "tokens_cached",
+    "     \                     ],
+    "     \ })
+
     let l:request = json_encode({
-        \ 'input_prefix':     l:prefix,
-        \ 'input_suffix':     l:suffix,
-        \ 'input_extra':      l:extra_ctx,
-        \ 'prompt':           l:middle,
-        \ 'n_predict':        g:llama_config.n_predict,
-        \ 'stop':             g:llama_config.stop_strings,
-        \ 'n_indent':         l:indent,
-        \ 'top_k':            40,
-        \ 'top_p':            0.90,
-        \ 'stream':           v:false,
-        \ 'samplers':         ["top_k", "top_p", "infill"],
-        \ 'cache_prompt':     v:true,
-        \ 't_max_prompt_ms':  g:llama_config.t_max_prompt_ms,
-        \ 't_max_predict_ms': l:t_max_predict_ms,
-        \ 'response_fields':  [
-        \                       "content",
-        \                       "timings/prompt_n",
-        \                       "timings/prompt_ms",
-        \                       "timings/prompt_per_token_ms",
-        \                       "timings/prompt_per_second",
-        \                       "timings/predicted_n",
-        \                       "timings/predicted_ms",
-        \                       "timings/predicted_per_token_ms",
-        \                       "timings/predicted_per_second",
-        \                       "truncated",
-        \                       "tokens_cached",
-        \                     ],
+        \ 'model':            'qwen-coder-turbo',
+        \ 'prompt':           l:prompt,
+        \ 'stop':             "\n",
         \ })
 
     let l:curl_command = [
@@ -793,6 +803,8 @@ function! s:fim_render(pos_x, pos_y, data)
     endif
 
     let l:raw = a:data
+
+    echom 'cjp try hint data = ' . l:raw
 
     let l:can_accept = v:true
     let l:has_info   = v:false
