@@ -695,6 +695,10 @@ function! s:fim_on_response(hashes, job_id, data, event = v:null)
         return
     endif
 
+    let l:data_dec = json_decode(a:data)
+    let l:text = l:data_dec['choices'][0]['text']
+    let l:raw = json_encode({'content': l:text})
+
     " put the response in the cache
     for l:hash in a:hashes
         call s:cache_insert(l:hash, l:raw)
@@ -803,8 +807,6 @@ function! s:fim_render(pos_x, pos_y, data)
     endif
 
     let l:raw = a:data
-
-    echom 'cjp try hint data = ' . l:raw
 
     let l:can_accept = v:true
     let l:has_info   = v:false
